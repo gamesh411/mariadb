@@ -29,21 +29,31 @@ then
   echo "DROP DATABASE IF EXISTS test;" >> ${INIT_FILE}
   echo "FLUSH PRIVILEGES;" >> ${INIT_FILE}
 
-  if [[ -n "${MARIADB_USERNAME}" && -n "${MARIADB_DATABASE}" ]]
+  MARIADB_DATABASE=${MARIADB_DATABASE:-$MARIADB_USERNAME}
+  if [ ! -z "${MARIADB_DATABASE}" ]
   then
-    echo "CREATE DATABASE IF NOT EXISTS \`${MARIADB_USERNAME}\`;" >> ${INIT_FILE}
-    echo "GRANT ALL PRIVILEGES ON \`${MARIADB_DATABASE}\`.* TO '${MARIADB_USERNAME}'@'%' IDENTIFIED BY '${MARIADB_PASSWORD}';" >> ${INIT_FILE}
-    echo "FLUSH PRIVILEGES;" >> ${INIT_FILE}
+    echo "CREATE DATABASE IF NOT EXISTS \`${MARIADB_DATABASE}\`;" >> ${INIT_FILE}
+  
+    if [ ! -z "${MARIADB_USERNAME}" ]
+    then
+      # it is possible to create a user with not password
+      echo "CREATE USER IF NOT EXISTS '${MARIADB_USERNAME}'@'%' IDENTIFIED BY '${MARIADB_PASSWORD}';" >> ${INIT_FILE}
+      # if the require ssl variable is set, create the user accordingly
+      if [ ! -z "${MARIADB_DEFAULT_USER_REQUIRE_SSL}" ]
+      then
+          echo "GRANT USAGE ON *.* TO '${MARIADB_USERNAME}'@'%'"\
+               "REQUIRE SUBJECT '${MARIADB_DEFAULT_USER_SSL_SUBJECT}'"\
+               "AND ISSUER '${MARIADB_DEFAULT_USER_SSL_ISSUER}'"\
+               "AND CIPHER'${MARIADB_DEFAULT_USER_SSL_CIPHER}';" >> ${INIT_FILE}
+      fi
+      echo "GRANT ALL PRIVILEGES ON \`${MARIADB_DATABASE}\`.* TO '${MARIADB_USERNAME}'@'%';" >> ${INIT_FILE}
+      # terminate the CREATE USER command
+      echo "FLUSH PRIVILEGES;" >> ${INIT_FILE}
+    fi
   fi
-
-  if [[ -n "${MARIADB_USERNAME}" && -z "${MARIADB_DATABASE}" ]]
-  then
-    echo "CREATE DATABASE IF NOT EXISTS \`${MARIADB_USERNAME}\`;" >> ${INIT_FILE}
-    echo "GRANT ALL PRIVILEGES ON \`${MARIADB_USERNAME}\`.* TO '${MARIADB_USERNAME}'@'%' IDENTIFIED BY '${MARIADB_PASSWORD}';" >> ${INIT_FILE}
-    echo "FLUSH PRIVILEGES;" >> ${INIT_FILE}
+  
+    echo "Init file is: ${INIT_FILE}"
+    STARTCMD="${STARTCMD} --init-file=${INIT_FILE}"
   fi
-
-  STARTCMD="${STARTCMD} --init-file=${INIT_FILE}"
-fi
 
 exec ${STARTCMD}
