@@ -41,7 +41,7 @@ then
       # if the require ssl variable is set, create the user accordingly
       if [ ! -z "${MARIADB_DEFAULT_USER_REQUIRE_SSL}" ]
       then
-          echo "GRANT USAGE ON *.* TO '${MARIADB_USERNAME}'@'%'"\
+          echo "GRANT ${MARIADB_DEFAULT_USER_GLOBAL_PRIVILEGES} ON *.* TO '${MARIADB_USERNAME}'@'%'"\
                "REQUIRE SUBJECT '${MARIADB_DEFAULT_USER_SSL_SUBJECT}'"\
                "AND ISSUER '${MARIADB_DEFAULT_USER_SSL_ISSUER}'"\
                "AND CIPHER'${MARIADB_DEFAULT_USER_SSL_CIPHER}';" >> ${INIT_FILE}
